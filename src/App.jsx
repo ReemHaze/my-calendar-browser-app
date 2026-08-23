@@ -1,5 +1,4 @@
 import DateRangePicker from "./components/DateRangePicker.jsx";
-
 function App() {
   return (
     <div className="app">
