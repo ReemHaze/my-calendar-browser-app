@@ -1,297 +1,312 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "./DateRangePicker.css";
 
-const DateRangePicker = () => {
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
+const presets = [
+  "Today",
+  "Last 7 days",
+  "Last 30 days",
+  "Last 90 days",
+  "Last 365 days",
+  "Custom",
+];
 
-  const [appliedRange, setAppliedRange] = useState({
-    start: null,
-    end: null,
-  });
+function DateRangePicker() {
+  const [activePreset, setActivePreset] = useState("Last 30 days");
 
-  const year = currentDate.getFullYear();
+  // Starting month shown in the design
+  const [currentDate, setCurrentDate] = useState(
+    new Date(2026, 6, 1)
+  );
+
+  const [startDate, setStartDate] = useState(
+    new Date(2026, 6, 25)
+  );
+
+  const [endDate, setEndDate] = useState(
+    new Date(2026, 6, 31)
+  );
+
   const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
 
-  const monthName = currentDate.toLocaleString("default", {
+  const monthName = currentDate.toLocaleString("en-US", {
     month: "long",
   });
 
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(
+    year,
+    month + 1,
+    0
+  ).getDate();
 
-  // Previous month
-  const previousMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-  };
+  const firstDay = new Date(
+    year,
+    month,
+    1
+  ).getDay();
 
-  // Next month
-  const nextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-  };
+  const days = [];
 
-  // Select a day
-  const handleDayClick = (day) => {
-    const selected = new Date(year, month, day);
+  // Previous month days
+  const previousMonthDays = new Date(
+    year,
+    month,
+    0
+  ).getDate();
 
-    // First click
-    if (!startDate || (startDate && endDate)) {
-      setStartDate(selected);
-      setEndDate(null);
-    }
+  for (let i = firstDay - 1; i >= 0; i--) {
+    days.push({
+      day: previousMonthDays - i,
+      currentMonth: false,
+    });
+  }
 
-    // Second click
-    else if (selected >= startDate) {
-      setEndDate(selected);
-    }
+  // Current month days
+  for (let day = 1; day <= daysInMonth; day++) {
+    days.push({
+      day,
+      currentMonth: true,
+    });
+  }
 
-    // If second date is before start date
-    else {
-      setStartDate(selected);
-      setEndDate(null);
-    }
-  };
+  // Next month days
+  let nextDay = 1;
 
-  // Check if day is start or end date
-  const isSelected = (day) => {
-    const date = new Date(year, month, day);
+  while (days.length < 42) {
+    days.push({
+      day: nextDay,
+      currentMonth: false,
+    });
 
-    return (
-      (startDate &&
-        date.getTime() === startDate.getTime()) ||
-      (endDate &&
-        date.getTime() === endDate.getTime())
+    nextDay++;
+  }
+
+  const changeMonth = (amount) => {
+    setCurrentDate(
+      new Date(year, month + amount, 1)
     );
   };
 
-  // Check if day is inside selected range
-  const isInRange = (day) => {
-    if (!startDate || !endDate) {
+  const handlePreset = (preset) => {
+    setActivePreset(preset);
+
+    const today = new Date();
+
+    if (preset === "Today") {
+      setStartDate(today);
+      setEndDate(today);
+    }
+
+    if (preset === "Last 7 days") {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 6);
+
+      setStartDate(start);
+      setEndDate(today);
+    }
+
+    if (preset === "Last 30 days") {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 29);
+
+      setStartDate(start);
+      setEndDate(today);
+    }
+
+    if (preset === "Last 90 days") {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 89);
+
+      setStartDate(start);
+      setEndDate(today);
+    }
+
+    if (preset === "Last 365 days") {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 364);
+
+      setStartDate(start);
+      setEndDate(today);
+    }
+
+    if (preset === "Custom") {
+      setStartDate(null);
+      setEndDate(null);
+    }
+  };
+
+  const handleDayClick = (item) => {
+    if (!item.currentMonth) return;
+
+    const selectedDate = new Date(
+      year,
+      month,
+      item.day
+    );
+
+    setActivePreset("Custom");
+
+    if (!startDate || endDate) {
+      setStartDate(selectedDate);
+      setEndDate(null);
+    } else if (selectedDate < startDate) {
+      setEndDate(startDate);
+      setStartDate(selectedDate);
+    } else {
+      setEndDate(selectedDate);
+    }
+  };
+
+  const isStartDate = (item) => {
+    if (!item.currentMonth || !startDate) return false;
+
+    return (
+      item.day === startDate.getDate() &&
+      month === startDate.getMonth() &&
+      year === startDate.getFullYear()
+    );
+  };
+
+  const isEndDate = (item) => {
+    if (!item.currentMonth || !endDate) return false;
+
+    return (
+      item.day === endDate.getDate() &&
+      month === endDate.getMonth() &&
+      year === endDate.getFullYear()
+    );
+  };
+
+  const isInRange = (item) => {
+    if (!item.currentMonth || !startDate || !endDate) {
       return false;
     }
 
-    const date = new Date(year, month, day);
+    const date = new Date(
+      year,
+      month,
+      item.day
+    );
 
     return date > startDate && date < endDate;
-  };
-
-  // Preset dates
-  const setPreset = (days) => {
-    const today = new Date();
-    const start = new Date(today);
-
-    start.setDate(today.getDate() - (days - 1));
-
-    setStartDate(start);
-    setEndDate(today);
-    setCurrentDate(new Date(today));
-  };
-
-  // Today
-  const handleToday = () => {
-    const today = new Date();
-
-    setStartDate(today);
-    setEndDate(today);
-    setCurrentDate(today);
-  };
-
-  // Custom
-  const handleCustom = () => {
-    setStartDate(null);
-    setEndDate(null);
-  };
-
-  // Cancel
-  const cancel = () => {
-    setStartDate(null);
-    setEndDate(null);
-
-    setAppliedRange({
-      start: null,
-      end: null,
-    });
-  };
-
-  // Apply
-  const apply = () => {
-    if (!startDate || !endDate) {
-      return;
-    }
-
-    setAppliedRange({
-      start: startDate,
-      end: endDate,
-    });
   };
 
   return (
     <div className="date-picker">
 
-      {/* Presets */}
+      {/* LEFT SIDE */}
       <div className="presets">
-
-        <button onClick={handleToday}>
-          Today
-        </button>
-
-        <button onClick={() => setPreset(7)}>
-          Last 7 days
-        </button>
-
-        <button onClick={() => setPreset(30)}>
-          Last 30 days
-        </button>
-
-        <button onClick={() => setPreset(90)}>
-          Last 90 days
-        </button>
-
-        <button onClick={() => setPreset(365)}>
-          Last 365 days
-        </button>
-
-        <button
-          className="custom-button"
-          onClick={handleCustom}
-        >
-          Custom
-        </button>
-
+        {presets.map((preset) => (
+          <button
+            key={preset}
+            className={
+              activePreset === preset
+                ? "preset active"
+                : "preset"
+            }
+            onClick={() => handlePreset(preset)}
+          >
+            {preset}
+          </button>
+        ))}
       </div>
 
-      {/* Calendar */}
+      {/* RIGHT SIDE */}
       <div className="calendar">
 
-        {/* Calendar Header */}
+        {/* MONTH HEADER */}
         <div className="calendar-header">
 
-          <button onClick={previousMonth}>
-            ←
+          <button
+            className="month-arrow"
+            onClick={() => changeMonth(-1)}
+          >
+            ‹
           </button>
 
           <h2>
             {monthName} {year}
           </h2>
 
-          <button onClick={nextMonth}>
-            →
+          <button
+            className="month-arrow"
+            onClick={() => changeMonth(1)}
+          >
+            ›
           </button>
 
         </div>
 
-        {/* Weekdays */}
+        {/* WEEK DAYS */}
         <div className="weekdays">
-
-          <span>Sun</span>
-          <span>Mon</span>
-          <span>Tue</span>
-          <span>Wed</span>
-          <span>Thu</span>
-          <span>Fri</span>
-          <span>Sat</span>
-
+          <span>Su</span>
+          <span>Mo</span>
+          <span>Tu</span>
+          <span>We</span>
+          <span>Th</span>
+          <span>Fr</span>
+          <span>Sa</span>
         </div>
 
-        {/* Days */}
+        {/* DAYS */}
         <div className="days">
 
-          {/* Empty spaces before first day */}
-          {Array.from({ length: firstDay }).map(
-            (_, index) => (
-              <div
-                key={`empty-${index}`}
-                className="empty-day"
-              />
-            )
-          )}
+          {days.map((item, index) => {
 
-          {/* Month days */}
-          {Array.from({ length: daysInMonth }).map(
-            (_, index) => {
+            const start = isStartDate(item);
+            const end = isEndDate(item);
+            const range = isInRange(item);
 
-              const day = index + 1;
+            return (
+              <button
+                key={index}
+                className={`
+                  day
+                  ${!item.currentMonth ? "other-month" : ""}
+                  ${range ? "in-range" : ""}
+                  ${start || end ? "selected" : ""}
+                `}
+                onClick={() => handleDayClick(item)}
+              >
+                {item.day}
+              </button>
+            );
+          })}
 
-              return (
-                <button
-                  key={day}
-                  className={`
-                    day
-                    ${isSelected(day) ? "selected" : ""}
-                    ${isInRange(day) ? "in-range" : ""}
-                  `}
-                  onClick={() => handleDayClick(day)}
-                >
-                  {day}
-                </button>
-              );
-            }
-          )}
+        </div>
+
+        {/* FOOTER */}
+        <div className="actions">
+
+          <button
+            className="cancel"
+            onClick={() => {
+              setStartDate(null);
+              setEndDate(null);
+              setActivePreset("Custom");
+            }}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="apply"
+            disabled={!startDate || !endDate}
+            onClick={() => {
+              console.log({
+                startDate,
+                endDate,
+              });
+            }}
+          >
+            Apply
+          </button>
 
         </div>
 
       </div>
-
-      {/* Selected Range */}
-      <div className="range-info">
-
-        <div>
-          <span>Start date</span>
-
-          <strong>
-            {startDate
-              ? startDate.toLocaleDateString()
-              : "Select date"}
-          </strong>
-        </div>
-
-        <div>
-          <span>End date</span>
-
-          <strong>
-            {endDate
-              ? endDate.toLocaleDateString()
-              : "Select date"}
-          </strong>
-        </div>
-
-      </div>
-
-      {/* Actions */}
-      <div className="actions">
-
-        <button onClick={cancel}>
-          Cancel
-        </button>
-
-        <button
-          className="apply"
-          onClick={apply}
-          disabled={!startDate || !endDate}
-        >
-          Apply
-        </button>
-
-      </div>
-
-      {/* Applied Range */}
-      {appliedRange.start && appliedRange.end && (
-        <div className="applied-range">
-
-          Selected range:{" "}
-
-          {appliedRange.start.toLocaleDateString()}
-
-          {" - "}
-
-          {appliedRange.end.toLocaleDateString()}
-
-        </div>
-      )}
-
     </div>
   );
-};
+}
 
 export default DateRangePicker;
